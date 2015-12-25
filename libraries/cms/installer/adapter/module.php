@@ -62,7 +62,9 @@ class JInstallerAdapterModule extends JInstallerAdapter
 					'JLIB_INSTALLER_ABORT_ROLLBACK',
 					JText::_('JLIB_INSTALLER_' . $this->route),
 					$e->getMessage()
-				)
+				),
+				$e->getCode(),
+				$e
 			);
 		}
 	}
@@ -430,32 +432,38 @@ class JInstallerAdapterModule extends JInstallerAdapter
 
 		foreach ($site_list as $module)
 		{
-			$manifest_details = JInstaller::parseXMLInstallFile(JPATH_SITE . "/modules/$module/$module.xml");
-			$extension = JTable::getInstance('extension');
-			$extension->set('type', 'module');
-			$extension->set('client_id', $site_info->id);
-			$extension->set('element', $module);
-			$extension->set('folder', '');
-			$extension->set('name', $module);
-			$extension->set('state', -1);
-			$extension->set('manifest_cache', json_encode($manifest_details));
-			$extension->set('params', '{}');
-			$results[] = clone $extension;
+			if (file_exists(JPATH_SITE . "/modules/$module/$module.xml"))
+			{
+				$manifest_details = JInstaller::parseXMLInstallFile(JPATH_SITE . "/modules/$module/$module.xml");
+				$extension = JTable::getInstance('extension');
+				$extension->set('type', 'module');
+				$extension->set('client_id', $site_info->id);
+				$extension->set('element', $module);
+				$extension->set('folder', '');
+				$extension->set('name', $module);
+				$extension->set('state', -1);
+				$extension->set('manifest_cache', json_encode($manifest_details));
+				$extension->set('params', '{}');
+				$results[] = clone $extension;
+			}
 		}
 
 		foreach ($admin_list as $module)
 		{
-			$manifest_details = JInstaller::parseXMLInstallFile(JPATH_ADMINISTRATOR . "/modules/$module/$module.xml");
-			$extension = JTable::getInstance('extension');
-			$extension->set('type', 'module');
-			$extension->set('client_id', $admin_info->id);
-			$extension->set('element', $module);
-			$extension->set('folder', '');
-			$extension->set('name', $module);
-			$extension->set('state', -1);
-			$extension->set('manifest_cache', json_encode($manifest_details));
-			$extension->set('params', '{}');
-			$results[] = clone $extension;
+			if (file_exists(JPATH_ADMINISTRATOR . "/modules/$module/$module.xml"))
+			{
+				$manifest_details = JInstaller::parseXMLInstallFile(JPATH_ADMINISTRATOR . "/modules/$module/$module.xml");
+				$extension = JTable::getInstance('extension');
+				$extension->set('type', 'module');
+				$extension->set('client_id', $admin_info->id);
+				$extension->set('element', $module);
+				$extension->set('folder', '');
+				$extension->set('name', $module);
+				$extension->set('state', -1);
+				$extension->set('manifest_cache', json_encode($manifest_details));
+				$extension->set('params', '{}');
+				$results[] = clone $extension;
+			}
 		}
 
 		return $results;
@@ -577,7 +585,14 @@ class JInstallerAdapterModule extends JInstallerAdapter
 			}
 		}
 
-		$this->triggerManifestScript('uninstall');
+		try
+		{
+			$this->triggerManifestScript('uninstall');
+		}
+		catch (RuntimeException $e)
+		{
+			// Ignore errors for now
+		}
 
 		if (!($this->getManifest() instanceof SimpleXMLElement))
 		{

@@ -162,7 +162,9 @@ abstract class JInstallerAdapter extends JAdapterInstance
 					'JLIB_INSTALLER_ABORT_ROLLBACK',
 					JText::_('JLIB_INSTALLER_' . $this->route),
 					$e->getMessage()
-				)
+				),
+				$e->getCode(),
+				$e
 			);
 		}
 	}
@@ -316,7 +318,18 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		 */
 
 		$this->setupScriptfile();
-		$this->triggerManifestScript('preflight');
+
+		try
+		{
+			$this->triggerManifestScript('preflight');
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		/*
 		 * ---------------------------------------------------------------------------------------------
@@ -349,7 +362,17 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		}
 
 		// Run the custom install method
-		$this->triggerManifestScript('install');
+		try
+		{
+			$this->triggerManifestScript('install');
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		/*
 		 * ---------------------------------------------------------------------------------------------
@@ -370,7 +393,17 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		}
 
 		// And now we run the postflight
-		$this->triggerManifestScript('postflight');
+		try
+		{
+			$this->triggerManifestScript('postflight');
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		return $this->extension->extension_id;
 	}
@@ -401,7 +434,7 @@ abstract class JInstallerAdapter extends JAdapterInstance
 						JText::sprintf(
 							'JLIB_INSTALLER_ABORT_SQL_ERROR',
 							JText::_('JLIB_INSTALLER_' . strtoupper($this->route)),
-							$this->parent->getDBO()->stderr(true)
+							$this->parent->getDbo()->stderr(true)
 						)
 					);
 				}
@@ -471,7 +504,7 @@ abstract class JInstallerAdapter extends JAdapterInstance
 	/**
 	 * Get the manifest object.
 	 *
-	 * @return  object  Manifest object
+	 * @return  SimpleXMLElement  Manifest object
 	 *
 	 * @since   3.4
 	 */
@@ -621,7 +654,18 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		 */
 
 		$this->setupScriptfile();
-		$this->triggerManifestScript('preflight');
+
+		try
+		{
+			$this->triggerManifestScript('preflight');
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		/*
 		 * ---------------------------------------------------------------------------------------------
@@ -689,7 +733,17 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		}
 
 		// Run the custom method based on the route
-		$this->triggerManifestScript($this->route);
+		try
+		{
+			$this->triggerManifestScript($this->route);
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		/*
 		 * ---------------------------------------------------------------------------------------------
@@ -710,7 +764,17 @@ abstract class JInstallerAdapter extends JAdapterInstance
 		}
 
 		// And now we run the postflight
-		$this->triggerManifestScript('postflight');
+		try
+		{
+			$this->triggerManifestScript('postflight');
+		}
+		catch (RuntimeException $e)
+		{
+			// Install failed, roll back changes
+			$this->parent->abort($e->getMessage());
+
+			return false;
+		}
 
 		return $this->extension->extension_id;
 	}
@@ -916,7 +980,12 @@ abstract class JInstallerAdapter extends JAdapterInstance
 						if ($method != 'postflight')
 						{
 							// The script failed, rollback changes
-							throw new RuntimeException(JText::_('JLIB_INSTALLER_ABORT_INSTALL_CUSTOM_INSTALL_FAILURE'));
+							throw new RuntimeException(
+								JText::sprintf(
+									'JLIB_INSTALLER_ABORT_INSTALL_CUSTOM_INSTALL_FAILURE',
+									JText::_('JLIB_INSTALLER_' . $this->route)
+								)
+							);
 						}
 					}
 					break;
@@ -930,7 +999,12 @@ abstract class JInstallerAdapter extends JAdapterInstance
 						if ($method != 'uninstall')
 						{
 							// The script failed, rollback changes
-							throw new RuntimeException(JText::_('JLIB_INSTALLER_ABORT_INSTALL_CUSTOM_INSTALL_FAILURE'));
+							throw new RuntimeException(
+								JText::sprintf(
+									'JLIB_INSTALLER_ABORT_INSTALL_CUSTOM_INSTALL_FAILURE',
+									JText::_('JLIB_INSTALLER_' . $this->route)
+								)
+							);
 						}
 					}
 					break;
